@@ -4,6 +4,8 @@ struct PresetsView: View {
     @EnvironmentObject private var store: AppStore
     @State private var searchText: String = ""
     @State private var selectedCategory: Category?
+    @State private var isPresentingEditor = false
+    @State private var editingPreset: Preset?
 
     private var filteredPresets: [Preset] {
         store.presets.filter { preset in
@@ -46,6 +48,11 @@ struct PresetsView: View {
                                     PresetRowView(preset: preset) {
                                         store.toggleFavorite(for: preset)
                                     }
+                                    .contentShape(Rectangle())
+                                    .onTapGesture {
+                                        editingPreset = preset
+                                        isPresentingEditor = true
+                                    }
                                     .listRowInsets(EdgeInsets())
                                     .listRowSeparator(.hidden)
                                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
@@ -67,8 +74,28 @@ struct PresetsView: View {
             .padding(.top, 8)
             .navigationTitle("Presets")
             .background(Color(.systemGroupedBackground))
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        editingPreset = nil
+                        isPresentingEditor = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                }
+            }
         }
         .searchable(text: $searchText, prompt: "Search presets")
+        .sheet(isPresented: $isPresentingEditor, onDismiss: { editingPreset = nil }) {
+            PresetEditorView(preset: editingPreset) { updatedPreset in
+                if editingPreset != nil {
+                    store.updatePreset(updatedPreset)
+                } else {
+                    store.addPreset(updatedPreset)
+                }
+            }
+            .presentationDetents([.medium, .large])
+        }
     }
 
     private var categoryChips: some View {

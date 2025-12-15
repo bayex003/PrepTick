@@ -50,6 +50,17 @@ class AppStore: ObservableObject {
         save()
     }
 
+    func addPreset(_ preset: Preset) {
+        presets.append(preset)
+        save()
+    }
+
+    func updatePreset(_ preset: Preset) {
+        guard let index = presets.firstIndex(where: { $0.id == preset.id }) else { return }
+        presets[index] = preset
+        save()
+    }
+
     func deletePreset(_ preset: Preset) {
         presets.removeAll { $0.id == preset.id }
         save()
