@@ -325,3 +325,41 @@ class AppStore: ObservableObject {
         return didUpdate
     }
 }
+
+#if DEBUG
+extension AppStore {
+    func loadDemoTimers(now: Date = .now) {
+        notificationManager.cancelNotifications(for: runningTimers.map { $0.id })
+
+        let demos: [(String, Int, Category)] = [
+            ("Chicken", 14 * 60 + 45, .dinner),
+            ("Rice", 15 * 60 + 20, .prep),
+            ("Broccoli", 3 * 60 + 25, .prep)
+        ]
+
+        runningTimers = demos.map { name, duration, category in
+            let preset = Preset(name: name, durationSeconds: duration, category: category)
+            return RunningTimer(
+                preset: preset,
+                startedAt: now,
+                endAt: now.addingTimeInterval(TimeInterval(duration)),
+                state: .running
+            )
+        }
+
+        lastSet = runningTimers.map { LastSet(preset: $0.preset, setAt: now) }
+        save()
+
+        for timer in runningTimers {
+            notificationManager.scheduleNotification(
+                for: timer,
+                alertsEnabled: settings.alertsEnabled,
+                silentModeEnabled: settings.silentModeEnabled,
+                now: now
+            )
+        }
+
+        notificationManager.reconcilePendingNotifications(matching: runningTimers)
+    }
+}
+#endif

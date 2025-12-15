@@ -51,6 +51,14 @@ struct SettingsView: View {
                     } label: {
                         Label("Reset App Data", systemImage: "arrow.counterclockwise")
                     }
+
+                    #if DEBUG
+                    Button {
+                        store.loadDemoTimers()
+                    } label: {
+                        Label("Load Demo Timers", systemImage: "sparkles")
+                    }
+                    #endif
                 }
             }
             .scrollContentBackground(.hidden)

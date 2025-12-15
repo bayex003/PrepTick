@@ -50,28 +50,19 @@ struct TimerTileView: View {
 
     private var content: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
+            HStack(alignment: .top, spacing: 10) {
                 Image(systemName: timer.preset.category.icon)
                     .foregroundStyle(.secondary)
+                    .padding(.top, 2)
                 VStack(alignment: .leading, spacing: 4) {
                     Text(timer.preset.name)
                         .font(.headline)
                         .foregroundStyle(.primary)
                         .lineLimit(2)
                         .minimumScaleFactor(0.8)
-                    HStack(spacing: 6) {
-                        Text(timer.preset.category.displayName)
-                            .font(.subheadline)
-                        if isPaused {
-                            Label("Paused", systemImage: "pause.fill")
-                                .font(.caption.weight(.semibold))
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Color.orange.opacity(0.15))
-                                .clipShape(Capsule())
-                        }
-                    }
-                    .foregroundStyle(.secondary)
+                    Text(timer.preset.category.displayName)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
                 }
                 Spacer()
             }
@@ -89,7 +80,7 @@ struct TimerTileView: View {
     }
 
     private var runningState: some View {
-        HStack(alignment: .bottom, spacing: 12) {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
             Text(formattedTime(remaining))
                 .font(.system(size: 38, weight: .semibold, design: .monospaced))
                 .foregroundStyle(.primary)
@@ -97,6 +88,10 @@ struct TimerTileView: View {
                 .minimumScaleFactor(0.6)
 
             VStack(alignment: .leading, spacing: 6) {
+                if isPaused {
+                    stateBadge(text: "Paused", systemImage: "pause.fill", color: .orange)
+                }
+
                 ProgressView(value: progress)
                     .progressViewStyle(.linear)
                     .tint(Theme.accent)
@@ -109,7 +104,7 @@ struct TimerTileView: View {
 
     private var doneState: some View {
         VStack(alignment: .leading, spacing: 10) {
-            doneBadge
+            stateBadge(text: "Done", systemImage: "checkmark.circle.fill", color: Theme.accent)
             HStack(spacing: 8) {
                 Image(systemName: "checkmark.seal.fill")
                     .foregroundStyle(Theme.accent.opacity(0.85))
@@ -201,13 +196,13 @@ struct TimerTileView: View {
         }
     }
 
-    private var doneBadge: some View {
-        Label("Done", systemImage: "checkmark.circle.fill")
+    private func stateBadge(text: String, systemImage: String, color: Color) -> some View {
+        Label(text, systemImage: systemImage)
             .font(.caption.weight(.semibold))
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
-            .background(Theme.accent.opacity(0.16))
-            .foregroundStyle(Theme.accent)
+            .background(color.opacity(0.16))
+            .foregroundStyle(color)
             .clipShape(Capsule())
     }
 

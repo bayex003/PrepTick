@@ -27,7 +27,9 @@ struct HomeView: View {
                         repeatLastSetCard
                     }
 
-                    favoritesSection
+                    if !favoritePresets.isEmpty {
+                        favoritesSection
+                    }
 
                     if store.runningTimers.isEmpty {
                         emptyState
@@ -36,6 +38,7 @@ struct HomeView: View {
                     }
                 }
                 .padding()
+                .padding(.top, 4)
             }
             .navigationTitle("PrepTick")
             .background(Color(.systemGroupedBackground))
