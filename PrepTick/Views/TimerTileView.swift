@@ -4,13 +4,18 @@ struct TimerTileView: View {
     @EnvironmentObject private var store: AppStore
     let timer: RunningTimer
     let now: Date
+    var onSelect: (() -> Void)? = nil
 
     private var remaining: Int {
-        max(0, Int(timer.endAt.timeIntervalSince(now)))
+        timer.remainingSeconds(at: now)
     }
 
     private var isDone: Bool {
         remaining == 0
+    }
+
+    private var isPaused: Bool {
+        timer.isPaused
     }
 
     private var progress: Double {
@@ -20,6 +25,12 @@ struct TimerTileView: View {
     }
 
     var body: some View {
+        content
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .materialCardStyle(cornerRadius: Theme.cornerRadiusMedium)
+    }
+
+    private var content: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Image(systemName: timer.preset.category.icon)
@@ -28,9 +39,19 @@ struct TimerTileView: View {
                     Text(timer.preset.name)
                         .font(.headline)
                         .foregroundStyle(.primary)
-                    Text(timer.preset.category.displayName)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                    HStack(spacing: 6) {
+                        Text(timer.preset.category.displayName)
+                            .font(.subheadline)
+                        if isPaused {
+                            Label("Paused", systemImage: "pause.fill")
+                                .font(.caption.weight(.semibold))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color.orange.opacity(0.15))
+                                .clipShape(Capsule())
+                        }
+                    }
+                    .foregroundStyle(.secondary)
                 }
                 Spacer()
             }
@@ -41,8 +62,10 @@ struct TimerTileView: View {
                 runningState
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .materialCardStyle(cornerRadius: Theme.cornerRadiusMedium)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            onSelect?()
+        }
     }
 
     private var runningState: some View {

@@ -4,6 +4,8 @@ struct HomeView: View {
     @EnvironmentObject private var store: AppStore
     @EnvironmentObject private var timerEngine: TimerEngine
 
+    @State private var selectedTimer: RunningTimer?
+
     private let gridColumns = [
         GridItem(.flexible(), spacing: 12),
         GridItem(.flexible())
@@ -31,6 +33,16 @@ struct HomeView: View {
             }
             .navigationTitle("PrepTick")
             .background(Color(.systemGroupedBackground))
+            .sheet(item: $selectedTimer) { timer in
+                TimerDetailSheetView(timerID: timer.id)
+                    .presentationDetents([.medium, .large])
+            }
+            .onChange(of: store.runningTimers) { timers in
+                guard let selectedTimer else { return }
+                if !timers.contains(where: { $0.id == selectedTimer.id }) {
+                    self.selectedTimer = nil
+                }
+            }
         }
     }
 
@@ -73,7 +85,9 @@ struct HomeView: View {
 
             LazyVGrid(columns: gridColumns, alignment: .leading, spacing: 12) {
                 ForEach(store.runningTimers) { timer in
-                    TimerTileView(timer: timer, now: timerEngine.now)
+                    TimerTileView(timer: timer, now: timerEngine.now) {
+                        selectedTimer = timer
+                    }
                 }
             }
         }

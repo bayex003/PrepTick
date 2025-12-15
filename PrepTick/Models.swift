@@ -80,16 +80,28 @@ struct RunningTimer: Identifiable, Codable, Equatable {
     var preset: Preset
     var startedAt: Date
     var endAt: Date
+    var pausedRemainingSeconds: Int?
 
-    init(id: UUID = UUID(), preset: Preset, startedAt: Date = .now, endAt: Date) {
+    init(id: UUID = UUID(), preset: Preset, startedAt: Date = .now, endAt: Date, pausedRemainingSeconds: Int? = nil) {
         self.id = id
         self.preset = preset
         self.startedAt = startedAt
         self.endAt = endAt
+        self.pausedRemainingSeconds = pausedRemainingSeconds
     }
 
+    var isPaused: Bool { pausedRemainingSeconds != nil }
+
     var remainingSeconds: Int {
-        max(0, Int(endAt.timeIntervalSinceNow))
+        remainingSeconds(at: .now)
+    }
+
+    func remainingSeconds(at date: Date) -> Int {
+        if let pausedRemainingSeconds {
+            return max(0, pausedRemainingSeconds)
+        }
+
+        return max(0, Int(endAt.timeIntervalSince(date)))
     }
 
     private enum CodingKeys: CodingKey {
@@ -98,6 +110,7 @@ struct RunningTimer: Identifiable, Codable, Equatable {
         case startedAt
         case endAt
         case remainingSeconds
+        case pausedRemainingSeconds
     }
 
     init(from decoder: Decoder) throws {
@@ -105,6 +118,7 @@ struct RunningTimer: Identifiable, Codable, Equatable {
         id = try container.decode(UUID.self, forKey: .id)
         preset = try container.decode(Preset.self, forKey: .preset)
         startedAt = try container.decode(Date.self, forKey: .startedAt)
+        pausedRemainingSeconds = try container.decodeIfPresent(Int.self, forKey: .pausedRemainingSeconds)
 
         if let endAt = try container.decodeIfPresent(Date.self, forKey: .endAt) {
             self.endAt = endAt
@@ -121,6 +135,7 @@ struct RunningTimer: Identifiable, Codable, Equatable {
         try container.encode(preset, forKey: .preset)
         try container.encode(startedAt, forKey: .startedAt)
         try container.encode(endAt, forKey: .endAt)
+        try container.encodeIfPresent(pausedRemainingSeconds, forKey: .pausedRemainingSeconds)
     }
 }
 

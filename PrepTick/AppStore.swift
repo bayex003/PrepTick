@@ -82,6 +82,58 @@ class AppStore: ObservableObject {
         let now = Date()
         runningTimers[index].startedAt = now
         runningTimers[index].endAt = now.addingTimeInterval(TimeInterval(timer.preset.durationSeconds))
+        runningTimers[index].pausedRemainingSeconds = nil
+        save()
+    }
+
+    func pauseTimer(_ timer: RunningTimer, now: Date = .now) {
+        guard let index = runningTimers.firstIndex(where: { $0.id == timer.id }) else { return }
+        let remaining = runningTimers[index].remainingSeconds(at: now)
+        runningTimers[index].pausedRemainingSeconds = remaining
+        runningTimers[index].endAt = now
+        save()
+    }
+
+    func resumeTimer(_ timer: RunningTimer, now: Date = .now) {
+        guard let index = runningTimers.firstIndex(where: { $0.id == timer.id }) else { return }
+        guard let pausedRemainingSeconds = runningTimers[index].pausedRemainingSeconds else { return }
+
+        let totalDuration = runningTimers[index].preset.durationSeconds
+        let endAt = now.addingTimeInterval(TimeInterval(pausedRemainingSeconds))
+        runningTimers[index].endAt = endAt
+        runningTimers[index].startedAt = endAt.addingTimeInterval(TimeInterval(-totalDuration))
+        runningTimers[index].pausedRemainingSeconds = nil
+        save()
+    }
+
+    func adjustTimer(_ timer: RunningTimer, by adjustmentSeconds: Int, now: Date = .now) {
+        guard let index = runningTimers.firstIndex(where: { $0.id == timer.id }) else { return }
+
+        let currentTimer = runningTimers[index]
+        let remaining = currentTimer.remainingSeconds(at: now)
+        let elapsed = max(0, currentTimer.preset.durationSeconds - remaining)
+
+        let newRemaining = max(0, remaining + adjustmentSeconds)
+        let newTotal = max(0, newRemaining + elapsed)
+
+        runningTimers[index].preset.durationSeconds = newTotal
+
+        if currentTimer.isPaused {
+            runningTimers[index].pausedRemainingSeconds = newRemaining
+            runningTimers[index].endAt = now
+            runningTimers[index].startedAt = now.addingTimeInterval(TimeInterval(-newTotal))
+        } else {
+            let endAt = now.addingTimeInterval(TimeInterval(newRemaining))
+            runningTimers[index].endAt = endAt
+            runningTimers[index].startedAt = endAt.addingTimeInterval(TimeInterval(-newTotal))
+        }
+
+        save()
+    }
+
+    func renameTimer(_ timer: RunningTimer, to newName: String) {
+        guard let index = runningTimers.firstIndex(where: { $0.id == timer.id }) else { return }
+        runningTimers[index].preset.name = newName
         save()
     }
 }
