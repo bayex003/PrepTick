@@ -1,0 +1,5 @@
+Data collected: None.
+Data linked to the user: None.
+Tracking: None.
+Third-party SDKs: None.
+Diagnostics: None (Apple crash reports only, if the user has enabled system sharing).

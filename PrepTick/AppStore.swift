@@ -27,6 +27,24 @@ class AppStore: ObservableObject {
         refreshNotifications()
     }
 
+    func resetAppData(keepingOnboardingSeen: Bool = true) {
+        notificationManager.cancelNotifications(for: runningTimers.map { $0.id })
+
+        let defaults = UserDefaults.standard
+        [presetsKey, runningTimersKey, settingsKey, lastSetKey].forEach { key in
+            UserDefaultsStore.removeValue(forKey: key, defaults: defaults)
+        }
+
+        if keepingOnboardingSeen {
+            defaults.set(true, forKey: "hasSeenOnboarding")
+            defaults.set(true, forKey: "hasCompletedOnboarding")
+        }
+
+        didSeedDefaults = false
+        load()
+        notificationManager.reconcilePendingNotifications(matching: runningTimers)
+    }
+
     func load() {
         if !didSeedDefaults {
             presets = DefaultsSeeder.seedPresets()

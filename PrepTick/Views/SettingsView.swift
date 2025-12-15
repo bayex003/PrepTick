@@ -3,6 +3,7 @@ import SwiftUI
 struct SettingsView: View {
     @EnvironmentObject private var store: AppStore
     @EnvironmentObject private var notificationManager: NotificationManager
+    @State private var showingResetAlert = false
 
     var body: some View {
         NavigationStack {
@@ -43,10 +44,26 @@ struct SettingsView: View {
                         Label("About PrepTick", systemImage: "info.circle")
                     }
                 }
+
+                Section(header: Text("Data")) {
+                    Button(role: .destructive) {
+                        showingResetAlert = true
+                    } label: {
+                        Label("Reset App Data", systemImage: "arrow.counterclockwise")
+                    }
+                }
             }
             .scrollContentBackground(.hidden)
             .background(Color(.systemGroupedBackground))
             .navigationTitle("Settings")
+            .alert("Reset App Data", isPresented: $showingResetAlert) {
+                Button("Cancel", role: .cancel) {}
+                Button("Reset", role: .destructive) {
+                    store.resetAppData()
+                }
+            } message: {
+                Text("This deletes presets, running timers, settings, and recent sets stored on this device. Onboarding stays marked as completed so you return directly to the app.")
+            }
         }
     }
 }
