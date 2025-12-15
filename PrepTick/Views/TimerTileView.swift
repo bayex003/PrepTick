@@ -18,6 +18,10 @@ struct TimerTileView: View {
         timer.isPaused
     }
 
+    private var isRunning: Bool {
+        timer.state == .running && !isPaused && !isDone
+    }
+
     private var progress: Double {
         let total = Double(timer.preset.durationSeconds)
         guard total > 0 else { return 0 }
@@ -30,7 +34,7 @@ struct TimerTileView: View {
             .padding()
             .background(tileBackground)
             .overlay(tileBorder)
-            .subtleShadow()
+            .shadow(color: Theme.accent.opacity(isRunning ? 0.16 : 0.08), radius: isRunning ? 12 : 10, x: 0, y: isRunning ? 6 : 4)
             .animation(.easeInOut(duration: 0.2), value: isDone)
             .animation(.easeInOut(duration: 0.2), value: isPaused)
     }
@@ -92,6 +96,7 @@ struct TimerTileView: View {
 
     private var doneState: some View {
         VStack(alignment: .leading, spacing: 10) {
+            doneBadge
             HStack(spacing: 8) {
                 Image(systemName: "checkmark.seal.fill")
                     .foregroundStyle(Theme.accent.opacity(0.85))
@@ -112,6 +117,7 @@ struct TimerTileView: View {
                 .tint(Theme.accent)
                 .controlSize(.large)
                 .font(.headline)
+                .buttonBorderShape(.capsule)
 
                 Button("Clear") {
                     store.clearTimer(timer)
@@ -141,7 +147,7 @@ struct TimerTileView: View {
 
     private var tileBorder: some View {
         RoundedRectangle(cornerRadius: Theme.cornerRadiusMedium, style: .continuous)
-            .stroke(tileTint.opacity(tileBorderOpacity), lineWidth: isDone ? 1.6 : 1)
+            .stroke(tileTint.opacity(tileBorderOpacity), lineWidth: borderWidth)
     }
 
     private var tileTint: Color { Theme.accent }
@@ -150,22 +156,42 @@ struct TimerTileView: View {
 
     private var tileOverlayOpacity: Double {
         if isDone {
-            return 0.12
+            return 0.14
         } else if isPaused {
-            return 0.1
+            return 0.12
         } else {
-            return 0.18
+            return 0.24
         }
     }
 
     private var tileBorderOpacity: Double {
         if isDone {
-            return 0.26
+            return 0.28
         } else if isPaused {
-            return 0.22
+            return 0.26
         } else {
-            return 0.36
+            return 0.42
         }
+    }
+
+    private var borderWidth: CGFloat {
+        if isRunning {
+            return 1.8
+        } else if isDone {
+            return 1.6
+        } else {
+            return 1.2
+        }
+    }
+
+    private var doneBadge: some View {
+        Label("Done", systemImage: "checkmark.circle.fill")
+            .font(.caption.weight(.semibold))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(Theme.accent.opacity(0.16))
+            .foregroundStyle(Theme.accent)
+            .clipShape(Capsule())
     }
 }
 

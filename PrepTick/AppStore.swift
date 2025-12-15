@@ -14,6 +14,7 @@ class AppStore: ObservableObject {
     private let runningTimersKey = "runningTimers"
     private let settingsKey = "settings"
     private let lastSetKey = "lastSet"
+    private let setGroupingWindow: TimeInterval = 90
 
     private let notificationManager: NotificationManager
 
@@ -51,28 +52,34 @@ class AppStore: ObservableObject {
         let runningTimer = RunningTimer(preset: preset, startedAt: now, endAt: endAt, state: .running)
 
         runningTimers.append(runningTimer)
-        lastSet = runningTimers.map { LastSet(presetID: $0.preset.id, setAt: now) }
+        updateLastSet(with: preset, startedAt: now)
         save()
         scheduleNotificationIfNeeded(for: runningTimer, now: now)
     }
 
     func repeatLastSet(now: Date = .now) {
         let presetMap = Dictionary(uniqueKeysWithValues: presets.map { ($0.id, $0) })
-        let presetsToStart = lastSet.compactMap { presetMap[$0.presetID] }
+        let setsToStart = lastSet
 
-        guard !presetsToStart.isEmpty else { return }
+        guard !setsToStart.isEmpty else { return }
 
         notificationManager.cancelNotifications(for: runningTimers.map { $0.id })
         runningTimers.removeAll()
 
-        for preset in presetsToStart {
+        var refreshedSet: [LastSet] = []
+
+        for item in setsToStart {
+            let preset = presetMap[item.presetID] ?? item.snapshotPreset
+            let refreshedItem = LastSet(id: item.id, preset: preset, setAt: now)
+            refreshedSet.append(refreshedItem)
+
             let endAt = now.addingTimeInterval(TimeInterval(preset.durationSeconds))
             let runningTimer = RunningTimer(preset: preset, startedAt: now, endAt: endAt, state: .running)
             runningTimers.append(runningTimer)
             scheduleNotificationIfNeeded(for: runningTimer, now: now)
         }
 
-        lastSet = presetsToStart.map { LastSet(presetID: $0.id, setAt: now) }
+        lastSet = refreshedSet
         save()
     }
 
@@ -229,5 +236,14 @@ class AppStore: ObservableObject {
         for timer in runningTimers {
             updateNotification(for: timer)
         }
+    }
+
+    private func updateLastSet(with preset: Preset, startedAt: Date) {
+        let lastDate = lastSet.map(\.setAt).max() ?? .distantPast
+        if startedAt.timeIntervalSince(lastDate) > setGroupingWindow {
+            lastSet = []
+        }
+
+        lastSet.append(LastSet(preset: preset, setAt: startedAt))
     }
 }

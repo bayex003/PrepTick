@@ -1,8 +1,7 @@
 import SwiftUI
 
 struct RepeatLastSetCardView: View {
-    let presets: [Preset]
-    let lastPlayedAt: Date?
+    let items: [LastSet]
     var onRepeat: () -> Void
 
     var body: some View {
@@ -19,6 +18,13 @@ struct RepeatLastSetCardView: View {
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
+                    if !subtitle.isEmpty {
+                        Text(subtitle)
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                    }
                 }
                 Spacer()
             }
@@ -32,12 +38,13 @@ struct RepeatLastSetCardView: View {
                         .font(.headline)
                     Spacer()
                 }
-                .padding(.vertical, 10)
+                .padding(.vertical, 12)
             }
             .buttonStyle(.borderedProminent)
             .buttonBorderShape(.capsule)
             .tint(Theme.accent)
             .controlSize(.large)
+            .shadow(color: Theme.accent.opacity(0.12), radius: 10, y: 6)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .materialCardStyle()
@@ -49,8 +56,16 @@ struct RepeatLastSetCardView: View {
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.secondary)
 
-            FlexibleChips(items: presets.map { $0.displayLabel })
+            FlexibleChips(items: items.map { $0.displayLabel })
         }
+    }
+
+    private var lastPlayedAt: Date? {
+        items.map(\.setAt).max()
+    }
+
+    private var subtitle: String {
+        items.prefix(3).map { $0.name }.joined(separator: ", ")
     }
 }
 
@@ -73,22 +88,26 @@ private struct FlexibleChips: View {
     }
 }
 
-private extension Preset {
+private extension LastSet {
     var displayLabel: String {
-        "\(name) • \(formattedDuration)"
+        let formatter = DateComponentsFormatter()
+        formatter.unitsStyle = .abbreviated
+        formatter.allowedUnits = durationSeconds >= 3600 ? [.hour, .minute] : [.minute, .second]
+        formatter.zeroFormattingBehavior = [.pad]
+        let duration = formatter.string(from: TimeInterval(durationSeconds)) ?? "\(durationSeconds / 60)m"
+        return "\(name) • \(duration)"
     }
 }
 
 #Preview {
     RepeatLastSetCardView(
-        presets: [
-            Preset(name: "Soft Boiled Eggs", durationSeconds: 360, category: .breakfast),
-            Preset(name: "Toast", durationSeconds: 180, category: .breakfast),
-            Preset(name: "Coffee", durationSeconds: 240, category: .beverage)
-        ],
-        lastPlayedAt: .now
+        items: [
+            LastSet(preset: Preset(name: "Soft Boiled Eggs", durationSeconds: 360, category: .breakfast)),
+            LastSet(preset: Preset(name: "Toast", durationSeconds: 180, category: .breakfast)),
+            LastSet(preset: Preset(name: "Coffee", durationSeconds: 240, category: .beverage))
+        ]
     ) {
-        
+
     }
     .padding()
     .background(Color(.systemGroupedBackground))
