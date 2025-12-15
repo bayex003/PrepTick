@@ -79,13 +79,48 @@ struct RunningTimer: Identifiable, Codable, Equatable {
     let id: UUID
     var preset: Preset
     var startedAt: Date
-    var remainingSeconds: Int
+    var endAt: Date
 
-    init(id: UUID = UUID(), preset: Preset, startedAt: Date = .now, remainingSeconds: Int) {
+    init(id: UUID = UUID(), preset: Preset, startedAt: Date = .now, endAt: Date) {
         self.id = id
         self.preset = preset
         self.startedAt = startedAt
-        self.remainingSeconds = remainingSeconds
+        self.endAt = endAt
+    }
+
+    var remainingSeconds: Int {
+        max(0, Int(endAt.timeIntervalSinceNow))
+    }
+
+    private enum CodingKeys: CodingKey {
+        case id
+        case preset
+        case startedAt
+        case endAt
+        case remainingSeconds
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        preset = try container.decode(Preset.self, forKey: .preset)
+        startedAt = try container.decode(Date.self, forKey: .startedAt)
+
+        if let endAt = try container.decodeIfPresent(Date.self, forKey: .endAt) {
+            self.endAt = endAt
+        } else if let remainingSeconds = try container.decodeIfPresent(Int.self, forKey: .remainingSeconds) {
+            endAt = startedAt.addingTimeInterval(TimeInterval(remainingSeconds))
+        } else {
+            endAt = startedAt
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(preset, forKey: .preset)
+        try container.encode(startedAt, forKey: .startedAt)
+        try container.encode(endAt, forKey: .endAt)
     }
 }
 
