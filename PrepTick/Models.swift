@@ -39,12 +39,39 @@ struct Preset: Identifiable, Codable, Equatable {
     var name: String
     var durationSeconds: Int
     var category: Category
+    var isFavorite: Bool
 
-    init(id: UUID = UUID(), name: String, durationSeconds: Int, category: Category) {
+    init(id: UUID = UUID(), name: String, durationSeconds: Int, category: Category, isFavorite: Bool = false) {
         self.id = id
         self.name = name
         self.durationSeconds = durationSeconds
         self.category = category
+        self.isFavorite = isFavorite
+    }
+
+    enum CodingKeys: CodingKey {
+        case id
+        case name
+        case durationSeconds
+        case category
+        case isFavorite
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        durationSeconds = try container.decode(Int.self, forKey: .durationSeconds)
+        category = try container.decode(Category.self, forKey: .category)
+        isFavorite = try container.decodeIfPresent(Bool.self, forKey: .isFavorite) ?? false
+    }
+
+    var formattedDuration: String {
+        let formatter = DateComponentsFormatter()
+        formatter.unitsStyle = .abbreviated
+        formatter.allowedUnits = durationSeconds >= 3600 ? [.hour, .minute] : [.minute, .second]
+        formatter.zeroFormattingBehavior = [.pad]
+        return formatter.string(from: TimeInterval(durationSeconds)) ?? "\(durationSeconds / 60)m"
     }
 }
 

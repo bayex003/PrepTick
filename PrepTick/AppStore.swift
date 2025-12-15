@@ -43,4 +43,15 @@ class AppStore: ObservableObject {
             UserDefaultsStore.removeValue(forKey: lastSetKey)
         }
     }
+
+    func toggleFavorite(for preset: Preset) {
+        guard let index = presets.firstIndex(where: { $0.id == preset.id }) else { return }
+        presets[index].isFavorite.toggle()
+        save()
+    }
+
+    func deletePreset(_ preset: Preset) {
+        presets.removeAll { $0.id == preset.id }
+        save()
+    }
 }

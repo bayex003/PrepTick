@@ -1,37 +1,112 @@
 import SwiftUI
 
 struct PresetsView: View {
+    @EnvironmentObject private var store: AppStore
+    @State private var searchText: String = ""
+    @State private var selectedCategory: Category?
+
+    private var filteredPresets: [Preset] {
+        store.presets.filter { preset in
+            let matchesCategory = selectedCategory == nil || preset.category == selectedCategory
+            let matchesSearch = searchText.isEmpty || preset.name.localizedCaseInsensitiveContains(searchText)
+            return matchesCategory && matchesSearch
+        }
+    }
+
+    private var groupedPresets: [(Category, [Preset])] {
+        Category.allCases.compactMap { category in
+            let presets = filteredPresets.filter { $0.category == category }
+            return presets.isEmpty ? nil : (category, presets)
+        }
+    }
+
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 16) {
-                    ForEach(0..<3) { index in
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Preset \(index + 1)")
-                                .font(.headline)
-                            Text("A calm starting point for your timers.")
-                                .foregroundStyle(.secondary)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .materialCardStyle()
-                    }
+            VStack(spacing: 8) {
+                categoryChips
 
-                    Button(action: {}) {
-                        Label("Create preset", systemImage: "plus")
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
+                if groupedPresets.isEmpty {
+                    VStack(spacing: 12) {
+                        Image(systemName: "magnifyingglass")
+                            .font(.largeTitle)
+                            .foregroundStyle(.secondary)
+                        Text("No presets found")
+                            .font(.headline)
+                        Text("Try adjusting your search or filters.")
+                            .foregroundStyle(.secondary)
+                            .font(.subheadline)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .tint(Theme.accent)
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                } else {
+                    List {
+                        ForEach(groupedPresets, id: \.0) { category, presets in
+                            Section(header: Text(category.displayName)) {
+                                ForEach(presets) { preset in
+                                    PresetRowView(preset: preset) {
+                                        store.toggleFavorite(for: preset)
+                                    }
+                                    .listRowInsets(EdgeInsets())
+                                    .listRowSeparator(.hidden)
+                                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                        Button(role: .destructive) {
+                                            store.deletePreset(preset)
+                                        } label: {
+                                            Label("Delete", systemImage: "trash")
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    .listStyle(.insetGrouped)
+                    .scrollContentBackground(.hidden)
+                    .background(Color(.systemGroupedBackground))
                 }
-                .padding()
             }
+            .padding(.top, 8)
             .navigationTitle("Presets")
             .background(Color(.systemGroupedBackground))
         }
+        .searchable(text: $searchText, prompt: "Search presets")
+    }
+
+    private var categoryChips: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                categoryChip(for: nil, label: "All")
+                ForEach(Category.allCases) { category in
+                    categoryChip(for: category, label: category.displayName, systemImage: category.icon)
+                }
+            }
+            .padding(.horizontal)
+            .padding(.vertical, 6)
+        }
+    }
+
+    @ViewBuilder
+    private func categoryChip(for category: Category?, label: String, systemImage: String? = nil) -> some View {
+        let isSelected = category == selectedCategory
+        Button {
+            selectedCategory = isSelected ? nil : category
+        } label: {
+            HStack(spacing: 6) {
+                if let systemImage {
+                    Image(systemName: systemImage)
+                }
+                Text(label)
+            }
+            .padding(.vertical, 8)
+            .padding(.horizontal, 14)
+            .background(isSelected ? Theme.accent.opacity(0.2) : Color(.systemGray6))
+            .foregroundStyle(isSelected ? Theme.accent : .primary)
+            .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
     }
 }
 
 #Preview {
     PresetsView()
+        .environmentObject(AppStore())
 }
