@@ -15,8 +15,13 @@ class AppStore: ObservableObject {
     private let settingsKey = "settings"
     private let lastSetKey = "lastSet"
 
-    init() {
+    private let notificationManager: NotificationManager
+
+    init(notificationManager: NotificationManager = NotificationManager()) {
+        self.notificationManager = notificationManager
+
         load()
+        refreshNotifications()
     }
 
     func load() {
@@ -48,6 +53,7 @@ class AppStore: ObservableObject {
         runningTimers.append(runningTimer)
         lastSet.append(LastSet(presetID: preset.id, setAt: now))
         save()
+        scheduleNotificationIfNeeded(for: runningTimer, now: now)
     }
 
     func toggleFavorite(for preset: Preset) {
@@ -73,6 +79,7 @@ class AppStore: ObservableObject {
     }
 
     func clearTimer(_ timer: RunningTimer) {
+        notificationManager.cancelNotification(for: timer.id)
         runningTimers.removeAll { $0.id == timer.id }
         save()
     }
@@ -84,6 +91,7 @@ class AppStore: ObservableObject {
         runningTimers[index].endAt = now.addingTimeInterval(TimeInterval(timer.preset.durationSeconds))
         runningTimers[index].pausedRemainingSeconds = nil
         save()
+        scheduleNotificationIfNeeded(for: runningTimers[index], now: now)
     }
 
     func pauseTimer(_ timer: RunningTimer, now: Date = .now) {
@@ -92,6 +100,7 @@ class AppStore: ObservableObject {
         runningTimers[index].pausedRemainingSeconds = remaining
         runningTimers[index].endAt = now
         save()
+        notificationManager.cancelNotification(for: timer.id)
     }
 
     func resumeTimer(_ timer: RunningTimer, now: Date = .now) {
@@ -104,6 +113,7 @@ class AppStore: ObservableObject {
         runningTimers[index].startedAt = endAt.addingTimeInterval(TimeInterval(-totalDuration))
         runningTimers[index].pausedRemainingSeconds = nil
         save()
+        scheduleNotificationIfNeeded(for: runningTimers[index], now: now)
     }
 
     func adjustTimer(_ timer: RunningTimer, by adjustmentSeconds: Int, now: Date = .now) {
@@ -129,11 +139,40 @@ class AppStore: ObservableObject {
         }
 
         save()
+        updateNotification(for: runningTimers[index], now: now)
     }
 
     func renameTimer(_ timer: RunningTimer, to newName: String) {
         guard let index = runningTimers.firstIndex(where: { $0.id == timer.id }) else { return }
         runningTimers[index].preset.name = newName
         save()
+        updateNotification(for: runningTimers[index])
+    }
+
+    func updateNotificationsEnabled(_ enabled: Bool) {
+        settings.notificationsEnabled = enabled
+        save()
+
+        if enabled {
+            refreshNotifications()
+        } else {
+            notificationManager.cancelNotifications(for: runningTimers.map { $0.id })
+        }
+    }
+
+    private func scheduleNotificationIfNeeded(for timer: RunningTimer, now: Date = .now) {
+        guard settings.notificationsEnabled, !timer.isPaused else { return }
+        notificationManager.scheduleNotification(for: timer, now: now)
+    }
+
+    private func updateNotification(for timer: RunningTimer, now: Date = .now) {
+        notificationManager.cancelNotification(for: timer.id)
+        scheduleNotificationIfNeeded(for: timer, now: now)
+    }
+
+    private func refreshNotifications() {
+        for timer in runningTimers {
+            updateNotification(for: timer)
+        }
     }
 }

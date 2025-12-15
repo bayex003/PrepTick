@@ -1,6 +1,9 @@
 import SwiftUI
 
 struct SettingsView: View {
+    @EnvironmentObject private var store: AppStore
+    @EnvironmentObject private var notificationManager: NotificationManager
+
     var body: some View {
         NavigationStack {
             List {
@@ -15,7 +18,13 @@ struct SettingsView: View {
                 }
 
                 Section(header: Text("Notifications")) {
-                    Toggle(isOn: .constant(true)) {
+                    Toggle(isOn: Binding(get: { store.settings.notificationsEnabled }, set: { enabled in
+                        store.updateNotificationsEnabled(enabled)
+
+                        if enabled {
+                            notificationManager.requestAuthorization()
+                        }
+                    })) {
                         Label("Timer alerts", systemImage: "bell.fill")
                     }
                 }
