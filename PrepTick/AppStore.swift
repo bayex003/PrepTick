@@ -22,6 +22,8 @@ class AppStore: ObservableObject {
         self.notificationManager = notificationManager
 
         load()
+        reconcileRunningTimers()
+        notificationManager.reconcilePendingNotifications(matching: runningTimers)
         refreshNotifications()
     }
 
@@ -47,6 +49,8 @@ class AppStore: ObservableObject {
     }
 
     func startPreset(_ preset: Preset) {
+        guard preset.durationSeconds > 0 else { return }
+
         let now = Date()
         let endAt = now.addingTimeInterval(TimeInterval(preset.durationSeconds))
         let runningTimer = RunningTimer(preset: preset, startedAt: now, endAt: endAt, state: .running)
@@ -70,6 +74,7 @@ class AppStore: ObservableObject {
 
         for item in setsToStart {
             let preset = presetMap[item.presetID] ?? item.snapshotPreset
+            guard preset.durationSeconds > 0 else { continue }
             let refreshedItem = LastSet(id: item.id, preset: preset, setAt: now)
             refreshedSet.append(refreshedItem)
 
@@ -114,6 +119,14 @@ class AppStore: ObservableObject {
     func restartTimer(_ timer: RunningTimer) {
         guard let index = runningTimers.firstIndex(where: { $0.id == timer.id }) else { return }
         let now = Date()
+        guard runningTimers[index].preset.durationSeconds > 0 else {
+            runningTimers[index].state = .done
+            runningTimers[index].pausedRemainingSeconds = nil
+            runningTimers[index].endAt = runningTimers[index].endAt ?? now
+            notificationManager.cancelNotification(for: timer.id)
+            save()
+            return
+        }
         runningTimers[index].startedAt = now
         runningTimers[index].endAt = now.addingTimeInterval(TimeInterval(timer.preset.durationSeconds))
         runningTimers[index].pausedRemainingSeconds = nil
@@ -181,6 +194,7 @@ class AppStore: ObservableObject {
         if newRemaining == 0 {
             runningTimers[index].state = .done
             runningTimers[index].pausedRemainingSeconds = nil
+            runningTimers[index].endAt = runningTimers[index].endAt ?? now
         } else if runningTimers[index].state == .done {
             runningTimers[index].state = .running
             runningTimers[index].pausedRemainingSeconds = nil
@@ -245,5 +259,51 @@ class AppStore: ObservableObject {
         }
 
         lastSet.append(LastSet(preset: preset, setAt: startedAt))
+    }
+
+    @discardableResult
+    func reconcileRunningTimers(now: Date = .now) -> Bool {
+        var didUpdate = false
+
+        for index in runningTimers.indices {
+            let remaining = runningTimers[index].remainingSeconds(at: now)
+
+            if runningTimers[index].preset.durationSeconds <= 0 {
+                runningTimers[index].state = .done
+                runningTimers[index].pausedRemainingSeconds = nil
+                runningTimers[index].endAt = runningTimers[index].endAt ?? now
+                notificationManager.cancelNotification(for: runningTimers[index].id)
+                didUpdate = true
+                continue
+            }
+
+            switch runningTimers[index].state {
+            case .running:
+                if remaining <= 0 {
+                    runningTimers[index].state = .done
+                    runningTimers[index].pausedRemainingSeconds = nil
+                    runningTimers[index].endAt = runningTimers[index].endAt ?? now
+                    notificationManager.cancelNotification(for: runningTimers[index].id)
+                    didUpdate = true
+                }
+            case .paused:
+                let clamped = max(0, runningTimers[index].pausedRemainingSeconds ?? remaining)
+                if runningTimers[index].pausedRemainingSeconds != clamped {
+                    runningTimers[index].pausedRemainingSeconds = clamped
+                    didUpdate = true
+                }
+            case .done:
+                if runningTimers[index].pausedRemainingSeconds != nil {
+                    runningTimers[index].pausedRemainingSeconds = nil
+                    didUpdate = true
+                }
+            }
+        }
+
+        if didUpdate {
+            save()
+        }
+
+        return didUpdate
     }
 }

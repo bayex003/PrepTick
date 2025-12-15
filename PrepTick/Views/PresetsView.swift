@@ -16,10 +16,13 @@ struct PresetsView: View {
     }
 
     private var groupedPresets: [(Category, [Preset])] {
-        Category.allCases.compactMap { category in
-            let presets = filteredPresets.filter { $0.category == category }
-            return presets.isEmpty ? nil : (category, presets)
+        Category.allCases.map { category in
+            (category, filteredPresets.filter { $0.category == category })
         }
+    }
+
+    private var hasPresets: Bool {
+        groupedPresets.contains { !$0.1.isEmpty }
     }
 
     var body: some View {
@@ -27,7 +30,7 @@ struct PresetsView: View {
             VStack(spacing: 8) {
                 categoryChips
 
-                if groupedPresets.isEmpty {
+                if !hasPresets {
                     VStack(spacing: 12) {
                         Image(systemName: "magnifyingglass")
                             .font(.largeTitle)
@@ -40,10 +43,15 @@ struct PresetsView: View {
                     }
                     .padding()
                     .frame(maxWidth: .infinity)
-                } else {
-                    List {
-                        ForEach(groupedPresets, id: \.0) { category, presets in
-                            Section(header: Text(category.displayName)) {
+                }
+
+                List {
+                    ForEach(groupedPresets, id: \.0) { category, presets in
+                        Section(header: Text(category.displayName)) {
+                            if presets.isEmpty {
+                                Text("No presets yet")
+                                    .foregroundStyle(.secondary)
+                            } else {
                                 ForEach(presets) { preset in
                                     PresetRowView(preset: preset) {
                                         store.toggleFavorite(for: preset)
@@ -66,10 +74,10 @@ struct PresetsView: View {
                             }
                         }
                     }
-                    .listStyle(.insetGrouped)
-                    .scrollContentBackground(.hidden)
-                    .background(Color(.systemGroupedBackground))
                 }
+                .listStyle(.insetGrouped)
+                .scrollContentBackground(.hidden)
+                .background(Color(.systemGroupedBackground))
             }
             .padding(.top, 8)
             .navigationTitle("Presets")

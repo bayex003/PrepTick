@@ -28,6 +28,12 @@ struct TimerTileView: View {
         return 1 - min(1, Double(remaining) / total)
     }
 
+    private var stateDescription: String {
+        if isDone { return "done" }
+        if isPaused { return "paused" }
+        return "running"
+    }
+
     var body: some View {
         content
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -37,6 +43,9 @@ struct TimerTileView: View {
             .shadow(color: Theme.accent.opacity(isRunning ? 0.16 : 0.08), radius: isRunning ? 12 : 10, x: 0, y: isRunning ? 6 : 4)
             .animation(.easeInOut(duration: 0.2), value: isDone)
             .animation(.easeInOut(duration: 0.2), value: isPaused)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(accessibilityLabelText)
+            .accessibilityHint("Double tap to view timer controls.")
     }
 
     private var content: some View {
@@ -48,6 +57,8 @@ struct TimerTileView: View {
                     Text(timer.preset.name)
                         .font(.headline)
                         .foregroundStyle(.primary)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.8)
                     HStack(spacing: 6) {
                         Text(timer.preset.category.displayName)
                             .font(.subheadline)
@@ -82,6 +93,8 @@ struct TimerTileView: View {
             Text(formattedTime(remaining))
                 .font(.system(size: 38, weight: .semibold, design: .monospaced))
                 .foregroundStyle(.primary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
 
             VStack(alignment: .leading, spacing: 6) {
                 ProgressView(value: progress)
@@ -118,6 +131,8 @@ struct TimerTileView: View {
                 .controlSize(.large)
                 .font(.headline)
                 .buttonBorderShape(.capsule)
+                .accessibilityLabel("Restart timer")
+                .accessibilityHint("Restarts \(timer.preset.name) from the beginning.")
 
                 Button("Clear") {
                     store.clearTimer(timer)
@@ -125,6 +140,8 @@ struct TimerTileView: View {
                 .buttonStyle(.bordered)
                 .controlSize(.large)
                 .font(.subheadline.weight(.semibold))
+                .accessibilityLabel("Clear timer")
+                .accessibilityHint("Removes \(timer.preset.name) from running timers.")
             }
         }
     }
@@ -192,6 +209,10 @@ struct TimerTileView: View {
             .background(Theme.accent.opacity(0.16))
             .foregroundStyle(Theme.accent)
             .clipShape(Capsule())
+    }
+
+    private var accessibilityLabelText: Text {
+        Text("\(timer.preset.name), \(formattedTime(remaining)) remaining, \(stateDescription)")
     }
 }
 

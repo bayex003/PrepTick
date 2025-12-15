@@ -27,6 +27,7 @@ struct SettingsView: View {
                     })) {
                         Label("Timer alerts", systemImage: "bell.fill")
                     }
+                    .accessibilityHint("Enable to allow PrepTick to send timer notifications.")
 
                     Toggle(isOn: Binding(get: { store.settings.silentModeEnabled }, set: { enabled in
                         store.updateSilentModeEnabled(enabled)
@@ -34,6 +35,7 @@ struct SettingsView: View {
                         Label("Silent mode", systemImage: "bell.slash.fill")
                     }
                     .disabled(!store.settings.alertsEnabled)
+                    .accessibilityHint("Mute sounds for alerts while keeping notifications enabled.")
                 }
             }
             .scrollContentBackground(.hidden)

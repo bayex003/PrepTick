@@ -94,6 +94,8 @@ struct PresetEditorView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") { save() }
                         .disabled(!canSave)
+                        .accessibilityLabel("Save preset")
+                        .accessibilityHint("Saves your changes to this preset.")
                 }
             }
         }

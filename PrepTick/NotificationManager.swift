@@ -15,12 +15,7 @@ final class NotificationManager: ObservableObject {
 
     func requestAuthorization() {
         Task {
-            do {
-                _ = try await center.requestAuthorization(options: [.alert, .sound])
-            } catch {
-                print("Notification authorization failed: \(error)")
-            }
-
+            _ = try? await center.requestAuthorization(options: [.alert, .sound])
             await refreshAuthorizationStatus()
         }
     }
@@ -53,9 +48,7 @@ final class NotificationManager: ObservableObject {
 
             do {
                 try await center.add(request)
-            } catch {
-                print("Failed to schedule notification: \(error)")
-            }
+            } catch {}
         }
     }
 
@@ -69,6 +62,25 @@ final class NotificationManager: ObservableObject {
         let identifiers = timerIDs.map { notificationIdentifier(for: $0) }
         center.removePendingNotificationRequests(withIdentifiers: identifiers)
         center.removeDeliveredNotifications(withIdentifiers: identifiers)
+    }
+
+    func reconcilePendingNotifications(matching timers: [RunningTimer]) {
+        Task {
+            let expectedIdentifiers = Set(
+                timers
+                    .filter { $0.state == .running && $0.endAt != nil }
+                    .map { notificationIdentifier(for: $0.id) }
+            )
+
+            let pendingRequests = await pendingRequests()
+            let orphanedIdentifiers = pendingRequests
+                .map(\.identifier)
+                .filter { !expectedIdentifiers.contains($0) }
+
+            guard !orphanedIdentifiers.isEmpty else { return }
+            center.removePendingNotificationRequests(withIdentifiers: orphanedIdentifiers)
+            center.removeDeliveredNotifications(withIdentifiers: orphanedIdentifiers)
+        }
     }
 
     private func notificationIdentifier(for timerID: UUID) -> String {
@@ -89,5 +101,13 @@ final class NotificationManager: ObservableObject {
     private func refreshAuthorizationStatus() async {
         let settings = await center.notificationSettings()
         authorizationStatus = settings.authorizationStatus
+    }
+
+    private func pendingRequests() async -> [UNNotificationRequest] {
+        await withCheckedContinuation { continuation in
+            center.getPendingNotificationRequests { requests in
+                continuation.resume(returning: requests)
+            }
+        }
     }
 }

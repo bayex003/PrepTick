@@ -37,6 +37,8 @@ struct PresetRowView: View {
                     )
             }
             .buttonStyle(.plain)
+            .accessibilityLabel(preset.isFavorite ? "Remove favorite" : "Mark favorite")
+            .accessibilityHint("Toggles favorite for \(preset.name).")
         }
         .padding(.vertical, 4)
         .padding(.horizontal, 2)

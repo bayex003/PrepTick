@@ -19,6 +19,7 @@ final class TimerEngine: ObservableObject {
 
     func bind(to store: AppStore) {
         self.store = store
+        store.reconcileRunningTimers(now: now)
     }
 
     private func handleTick(_ date: Date) {

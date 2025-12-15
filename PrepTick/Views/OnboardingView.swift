@@ -68,16 +68,18 @@ struct OnboardingView: View {
     }
 
     private var nextButton: some View {
-        Button {
-            withAnimation {
-                currentIndex = min(currentIndex + 1, pages.count - 1)
+            Button {
+                withAnimation {
+                    currentIndex = min(currentIndex + 1, pages.count - 1)
+                }
+            } label: {
+                Text("Next")
+                    .frame(maxWidth: .infinity)
             }
-        } label: {
-            Text("Next")
-                .frame(maxWidth: .infinity)
-        }
-        .buttonStyle(.borderedProminent)
-        .padding(.horizontal)
+            .buttonStyle(.borderedProminent)
+            .padding(.horizontal)
+            .accessibilityLabel("Continue")
+            .accessibilityHint("Moves to the next onboarding tip.")
     }
 
     private var notificationActions: some View {
@@ -89,6 +91,7 @@ struct OnboardingView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
+            .accessibilityHint("Requests permission to send timer alerts.")
 
             Button {
                 completeOnboarding(requestPermission: false)
@@ -97,6 +100,7 @@ struct OnboardingView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
+            .accessibilityHint("Skips notification permission for now.")
         }
         .padding(.horizontal)
     }

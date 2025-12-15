@@ -23,6 +23,7 @@ struct RepeatLastSetCardView: View {
                             .font(.footnote.weight(.semibold))
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
+                            .minimumScaleFactor(0.85)
                             .truncationMode(.tail)
                     }
                 }
@@ -45,6 +46,8 @@ struct RepeatLastSetCardView: View {
             .tint(Theme.accent)
             .controlSize(.large)
             .shadow(color: Theme.accent.opacity(0.12), radius: 10, y: 6)
+            .accessibilityLabel("Repeat set")
+            .accessibilityHint("Restarts the previous set of timers.")
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .materialCardStyle()

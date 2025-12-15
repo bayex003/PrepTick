@@ -74,6 +74,8 @@ struct TimerDetailSheetView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(formattedTime(remaining))
                         .font(.system(size: 42, weight: .bold, design: .monospaced))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
 
                     Label(stateLabel, systemImage: stateIcon)
                         .foregroundStyle(stateColor)
@@ -118,12 +120,16 @@ struct TimerDetailSheetView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(isDone)
+                .accessibilityLabel(isPaused ? "Resume timer" : "Pause timer")
+                .accessibilityHint(isPaused ? "Resumes \(timer.preset.name)." : "Pauses \(timer.preset.name).")
 
                 Button("Stop") {
                     store.clearTimer(timer)
                     dismiss()
                 }
                 .buttonStyle(.bordered)
+                .accessibilityLabel("Stop timer")
+                .accessibilityHint("Stops and removes \(timer.preset.name).")
             }
 
             HStack(spacing: 10) {
@@ -134,6 +140,8 @@ struct TimerDetailSheetView: View {
                 }
                 .buttonStyle(.bordered)
                 .disabled(isDone)
+                .accessibilityLabel("Subtract one minute")
+                .accessibilityHint("Decreases remaining time for \(timer.preset.name).")
 
                 Button {
                     store.adjustTimer(timer, by: 60, now: timerEngine.now)
@@ -142,6 +150,8 @@ struct TimerDetailSheetView: View {
                 }
                 .buttonStyle(.bordered)
                 .disabled(isDone)
+                .accessibilityLabel("Add one minute")
+                .accessibilityHint("Increases remaining time for \(timer.preset.name).")
             }
 
             Button {
@@ -151,6 +161,7 @@ struct TimerDetailSheetView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
+            .accessibilityHint("Updates the timer name.")
         }
     }
 

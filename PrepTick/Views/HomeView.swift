@@ -27,9 +27,7 @@ struct HomeView: View {
                         repeatLastSetCard
                     }
 
-                    if !favoritePresets.isEmpty {
-                        favoritesSection
-                    }
+                    favoritesSection
 
                     if store.runningTimers.isEmpty {
                         emptyState
@@ -71,23 +69,34 @@ struct HomeView: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
-                    ForEach(favoritePresets) { preset in
-                        Button {
-                            store.startPreset(preset)
-                        } label: {
-                            HStack(spacing: 8) {
-                                Image(systemName: preset.category.icon)
-                                Text(preset.name)
-                                Text(preset.formattedDuration)
-                                    .foregroundStyle(.secondary)
-                            }
+                    if favoritePresets.isEmpty {
+                        Text("No favorites yet")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
                             .padding(.vertical, 10)
-                            .padding(.horizontal, 14)
-                            .background(Theme.accent.opacity(0.15))
-                            .foregroundStyle(Theme.accent)
-                            .clipShape(Capsule())
+                    } else {
+                        ForEach(favoritePresets) { preset in
+                            Button {
+                                store.startPreset(preset)
+                            } label: {
+                                HStack(spacing: 8) {
+                                    Image(systemName: preset.category.icon)
+                                    Text(preset.name)
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.85)
+                                    Text(preset.formattedDuration)
+                                        .foregroundStyle(.secondary)
+                                }
+                                .padding(.vertical, 10)
+                                .padding(.horizontal, 14)
+                                .background(Theme.accent.opacity(0.15))
+                                .foregroundStyle(Theme.accent)
+                                .clipShape(Capsule())
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Start \(preset.name)")
+                            .accessibilityHint("Begins the \(preset.formattedDuration) timer.")
                         }
-                        .buttonStyle(.plain)
                     }
                 }
             }
