@@ -11,7 +11,7 @@ struct TimerTileView: View {
     }
 
     private var isDone: Bool {
-        remaining == 0
+        timer.state == .done || remaining == 0
     }
 
     private var isPaused: Bool {
@@ -94,11 +94,11 @@ struct TimerTileView: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
                 Image(systemName: "checkmark.seal.fill")
-                    .foregroundStyle(Theme.accent)
+                    .foregroundStyle(Theme.accent.opacity(0.85))
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Finished")
                         .font(.title3.weight(.semibold))
-                    Text("Wrapped at \(timer.endAt, style: .time)")
+                    Text("Wrapped at \(finishTime, style: .time)")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
@@ -135,16 +135,38 @@ struct TimerTileView: View {
             .fill(.ultraThinMaterial)
             .overlay(
                 RoundedRectangle(cornerRadius: Theme.cornerRadiusMedium, style: .continuous)
-                    .fill(tileTint.opacity(isDone ? 0.2 : (isPaused ? 0.12 : 0.1)))
+                    .fill(tileTint.opacity(tileOverlayOpacity))
             )
     }
 
     private var tileBorder: some View {
         RoundedRectangle(cornerRadius: Theme.cornerRadiusMedium, style: .continuous)
-            .stroke(tileTint.opacity(isDone ? 0.6 : (isPaused ? 0.4 : 0.32)), lineWidth: isDone ? 1.6 : 1)
+            .stroke(tileTint.opacity(tileBorderOpacity), lineWidth: isDone ? 1.6 : 1)
     }
 
     private var tileTint: Color { Theme.accent }
+
+    private var finishTime: Date { timer.endAt ?? timer.startedAt }
+
+    private var tileOverlayOpacity: Double {
+        if isDone {
+            return 0.12
+        } else if isPaused {
+            return 0.1
+        } else {
+            return 0.18
+        }
+    }
+
+    private var tileBorderOpacity: Double {
+        if isDone {
+            return 0.26
+        } else if isPaused {
+            return 0.22
+        } else {
+            return 0.36
+        }
+    }
 }
 
 #Preview {

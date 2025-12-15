@@ -18,6 +18,11 @@ struct TimerDetailSheetView: View {
         return timer.remainingSeconds(at: timerEngine.now)
     }
 
+    private var isDone: Bool {
+        guard let timer else { return false }
+        return timer.state == .done || remaining == 0
+    }
+
     private var progress: Double {
         guard let timer else { return 0 }
         let total = Double(max(timer.preset.durationSeconds, 1))
@@ -70,8 +75,8 @@ struct TimerDetailSheetView: View {
                     Text(formattedTime(remaining))
                         .font(.system(size: 42, weight: .bold, design: .monospaced))
 
-                    Label(isPaused ? "Paused" : "Running", systemImage: isPaused ? "pause.fill" : "play.fill")
-                        .foregroundStyle(isPaused ? .orange : .green)
+                    Label(stateLabel, systemImage: stateIcon)
+                        .foregroundStyle(stateColor)
                         .font(.subheadline.weight(.semibold))
                 }
 
@@ -112,6 +117,7 @@ struct TimerDetailSheetView: View {
                     togglePause(timer)
                 }
                 .buttonStyle(.borderedProminent)
+                .disabled(isDone)
 
                 Button("Stop") {
                     store.clearTimer(timer)
@@ -127,6 +133,7 @@ struct TimerDetailSheetView: View {
                     Label("-1 min", systemImage: "minus.circle")
                 }
                 .buttonStyle(.bordered)
+                .disabled(isDone)
 
                 Button {
                     store.adjustTimer(timer, by: 60, now: timerEngine.now)
@@ -134,6 +141,7 @@ struct TimerDetailSheetView: View {
                     Label("+1 min", systemImage: "plus.circle")
                 }
                 .buttonStyle(.bordered)
+                .disabled(isDone)
             }
 
             Button {
@@ -147,6 +155,7 @@ struct TimerDetailSheetView: View {
     }
 
     private func togglePause(_ timer: RunningTimer) {
+        guard !isDone else { return }
         if timer.isPaused {
             store.resumeTimer(timer, now: timerEngine.now)
         } else {
@@ -169,6 +178,24 @@ struct TimerDetailSheetView: View {
         formatter.zeroFormattingBehavior = .pad
         formatter.allowedUnits = seconds >= 3600 ? [.hour, .minute, .second] : [.minute, .second]
         return formatter.string(from: TimeInterval(seconds)) ?? "--:--"
+    }
+
+    private var stateLabel: String {
+        guard let timer else { return "Running" }
+        if isDone { return "Done" }
+        return timer.isPaused ? "Paused" : "Running"
+    }
+
+    private var stateIcon: String {
+        guard let timer else { return "play.fill" }
+        if isDone { return "checkmark.circle.fill" }
+        return timer.isPaused ? "pause.fill" : "play.fill"
+    }
+
+    private var stateColor: Color {
+        guard let timer else { return .green }
+        if isDone { return .secondary }
+        return timer.isPaused ? .orange : .green
     }
 }
 

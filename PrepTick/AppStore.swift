@@ -48,7 +48,7 @@ class AppStore: ObservableObject {
     func startPreset(_ preset: Preset) {
         let now = Date()
         let endAt = now.addingTimeInterval(TimeInterval(preset.durationSeconds))
-        let runningTimer = RunningTimer(preset: preset, startedAt: now, endAt: endAt)
+        let runningTimer = RunningTimer(preset: preset, startedAt: now, endAt: endAt, state: .running)
 
         runningTimers.append(runningTimer)
         lastSet = runningTimers.map { LastSet(presetID: $0.preset.id, setAt: now) }
@@ -67,7 +67,7 @@ class AppStore: ObservableObject {
 
         for preset in presetsToStart {
             let endAt = now.addingTimeInterval(TimeInterval(preset.durationSeconds))
-            let runningTimer = RunningTimer(preset: preset, startedAt: now, endAt: endAt)
+            let runningTimer = RunningTimer(preset: preset, startedAt: now, endAt: endAt, state: .running)
             runningTimers.append(runningTimer)
             scheduleNotificationIfNeeded(for: runningTimer, now: now)
         }
@@ -110,6 +110,7 @@ class AppStore: ObservableObject {
         runningTimers[index].startedAt = now
         runningTimers[index].endAt = now.addingTimeInterval(TimeInterval(timer.preset.durationSeconds))
         runningTimers[index].pausedRemainingSeconds = nil
+        runningTimers[index].state = .running
         save()
         scheduleNotificationIfNeeded(for: runningTimers[index], now: now)
     }
@@ -118,7 +119,8 @@ class AppStore: ObservableObject {
         guard let index = runningTimers.firstIndex(where: { $0.id == timer.id }) else { return }
         let remaining = runningTimers[index].remainingSeconds(at: now)
         runningTimers[index].pausedRemainingSeconds = remaining
-        runningTimers[index].endAt = now
+        runningTimers[index].endAt = nil
+        runningTimers[index].state = .paused
         save()
         notificationManager.cancelNotification(for: timer.id)
     }
@@ -127,11 +129,20 @@ class AppStore: ObservableObject {
         guard let index = runningTimers.firstIndex(where: { $0.id == timer.id }) else { return }
         guard let pausedRemainingSeconds = runningTimers[index].pausedRemainingSeconds else { return }
 
+        if pausedRemainingSeconds <= 0 {
+            runningTimers[index].pausedRemainingSeconds = nil
+            runningTimers[index].endAt = now
+            runningTimers[index].state = .done
+            save()
+            return
+        }
+
         let totalDuration = runningTimers[index].preset.durationSeconds
         let endAt = now.addingTimeInterval(TimeInterval(pausedRemainingSeconds))
         runningTimers[index].endAt = endAt
         runningTimers[index].startedAt = endAt.addingTimeInterval(TimeInterval(-totalDuration))
         runningTimers[index].pausedRemainingSeconds = nil
+        runningTimers[index].state = .running
         save()
         scheduleNotificationIfNeeded(for: runningTimers[index], now: now)
     }
@@ -148,14 +159,24 @@ class AppStore: ObservableObject {
 
         runningTimers[index].preset.durationSeconds = newTotal
 
-        if currentTimer.isPaused {
+        switch currentTimer.state {
+        case .paused:
             runningTimers[index].pausedRemainingSeconds = newRemaining
-            runningTimers[index].endAt = now
-            runningTimers[index].startedAt = now.addingTimeInterval(TimeInterval(-newTotal))
-        } else {
+            runningTimers[index].endAt = nil
+        case .running:
             let endAt = now.addingTimeInterval(TimeInterval(newRemaining))
             runningTimers[index].endAt = endAt
             runningTimers[index].startedAt = endAt.addingTimeInterval(TimeInterval(-newTotal))
+        case .done:
+            runningTimers[index].endAt = runningTimers[index].endAt ?? now
+        }
+
+        if newRemaining == 0 {
+            runningTimers[index].state = .done
+            runningTimers[index].pausedRemainingSeconds = nil
+        } else if runningTimers[index].state == .done {
+            runningTimers[index].state = .running
+            runningTimers[index].pausedRemainingSeconds = nil
         }
 
         save()
@@ -181,7 +202,7 @@ class AppStore: ObservableObject {
     }
 
     private func scheduleNotificationIfNeeded(for timer: RunningTimer, now: Date = .now) {
-        guard settings.notificationsEnabled, !timer.isPaused else { return }
+        guard settings.notificationsEnabled, !timer.isPaused, timer.state != .done else { return }
         notificationManager.scheduleNotification(for: timer, now: now)
     }
 

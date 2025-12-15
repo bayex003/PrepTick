@@ -76,32 +76,55 @@ struct Preset: Identifiable, Codable, Equatable {
 }
 
 struct RunningTimer: Identifiable, Codable, Equatable {
+    enum State: String, Codable {
+        case running
+        case paused
+        case done
+    }
+
     let id: UUID
     var preset: Preset
     var startedAt: Date
-    var endAt: Date
+    var endAt: Date?
     var pausedRemainingSeconds: Int?
+    var state: State
 
-    init(id: UUID = UUID(), preset: Preset, startedAt: Date = .now, endAt: Date, pausedRemainingSeconds: Int? = nil) {
+    init(
+        id: UUID = UUID(),
+        preset: Preset,
+        startedAt: Date = .now,
+        endAt: Date?,
+        pausedRemainingSeconds: Int? = nil,
+        state: State = .running
+    ) {
         self.id = id
         self.preset = preset
         self.startedAt = startedAt
         self.endAt = endAt
         self.pausedRemainingSeconds = pausedRemainingSeconds
+        self.state = state
     }
 
-    var isPaused: Bool { pausedRemainingSeconds != nil }
+    var isPaused: Bool { state == .paused }
 
     var remainingSeconds: Int {
         remainingSeconds(at: .now)
     }
 
     func remainingSeconds(at date: Date) -> Int {
-        if let pausedRemainingSeconds {
-            return max(0, pausedRemainingSeconds)
-        }
+        switch state {
+        case .done:
+            return 0
+        case .paused:
+            return max(0, pausedRemainingSeconds ?? 0)
+        case .running:
+            if let pausedRemainingSeconds {
+                return max(0, pausedRemainingSeconds)
+            }
 
-        return max(0, Int(endAt.timeIntervalSince(date)))
+            guard let endAt else { return 0 }
+            return max(0, Int(endAt.timeIntervalSince(date)))
+        }
     }
 
     private enum CodingKeys: CodingKey {
@@ -111,6 +134,7 @@ struct RunningTimer: Identifiable, Codable, Equatable {
         case endAt
         case remainingSeconds
         case pausedRemainingSeconds
+        case state
     }
 
     init(from decoder: Decoder) throws {
@@ -119,13 +143,14 @@ struct RunningTimer: Identifiable, Codable, Equatable {
         preset = try container.decode(Preset.self, forKey: .preset)
         startedAt = try container.decode(Date.self, forKey: .startedAt)
         pausedRemainingSeconds = try container.decodeIfPresent(Int.self, forKey: .pausedRemainingSeconds)
+        state = try container.decodeIfPresent(State.self, forKey: .state) ?? (pausedRemainingSeconds != nil ? .paused : .running)
 
         if let endAt = try container.decodeIfPresent(Date.self, forKey: .endAt) {
             self.endAt = endAt
         } else if let remainingSeconds = try container.decodeIfPresent(Int.self, forKey: .remainingSeconds) {
             endAt = startedAt.addingTimeInterval(TimeInterval(remainingSeconds))
         } else {
-            endAt = startedAt
+            endAt = nil
         }
     }
 
@@ -134,8 +159,9 @@ struct RunningTimer: Identifiable, Codable, Equatable {
         try container.encode(id, forKey: .id)
         try container.encode(preset, forKey: .preset)
         try container.encode(startedAt, forKey: .startedAt)
-        try container.encode(endAt, forKey: .endAt)
+        try container.encodeIfPresent(endAt, forKey: .endAt)
         try container.encodeIfPresent(pausedRemainingSeconds, forKey: .pausedRemainingSeconds)
+        try container.encode(state, forKey: .state)
     }
 }
 
