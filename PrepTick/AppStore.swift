@@ -6,7 +6,7 @@ class AppStore: ObservableObject {
     @Published var presets: [Preset] = []
     @Published var runningTimers: [RunningTimer] = []
     @Published var settings: Settings = Settings()
-    @Published var lastSet: LastSet?
+    @Published var lastSet: [LastSet] = []
 
     @AppStorage("didSeedDefaults") private var didSeedDefaults: Bool = false
 
@@ -30,18 +30,24 @@ class AppStore: ObservableObject {
 
         runningTimers = UserDefaultsStore.load([RunningTimer].self, forKey: runningTimersKey) ?? []
         settings = UserDefaultsStore.load(Settings.self, forKey: settingsKey) ?? Settings()
-        lastSet = UserDefaultsStore.load(LastSet.self, forKey: lastSetKey)
+        lastSet = UserDefaultsStore.load([LastSet].self, forKey: lastSetKey) ?? []
     }
 
     func save() {
         UserDefaultsStore.save(presets, forKey: presetsKey)
         UserDefaultsStore.save(runningTimers, forKey: runningTimersKey)
         UserDefaultsStore.save(settings, forKey: settingsKey)
-        if let lastSet {
-            UserDefaultsStore.save(lastSet, forKey: lastSetKey)
-        } else {
-            UserDefaultsStore.removeValue(forKey: lastSetKey)
-        }
+        UserDefaultsStore.save(lastSet, forKey: lastSetKey)
+    }
+
+    func startPreset(_ preset: Preset) {
+        let now = Date()
+        let endAt = now.addingTimeInterval(TimeInterval(preset.durationSeconds))
+        let runningTimer = RunningTimer(preset: preset, startedAt: now, endAt: endAt)
+
+        runningTimers.append(runningTimer)
+        lastSet.append(LastSet(presetID: preset.id, setAt: now))
+        save()
     }
 
     func toggleFavorite(for preset: Preset) {

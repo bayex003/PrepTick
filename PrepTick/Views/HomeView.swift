@@ -1,45 +1,103 @@
 import SwiftUI
 
 struct HomeView: View {
+    @EnvironmentObject private var store: AppStore
+    @State private var now: Date = .now
+
+    private let gridColumns = [
+        GridItem(.flexible(), spacing: 12),
+        GridItem(.flexible())
+    ]
+
+    private var favoritePresets: [Preset] {
+        store.presets.filter { $0.isFavorite }
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 16) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Next Timer")
-                            .font(.headline)
-                            .foregroundStyle(.secondary)
-                        Text("00:00")
-                            .font(.system(size: 48, weight: .medium, design: .monospaced))
-                            .foregroundStyle(.primary)
+                VStack(alignment: .leading, spacing: 16) {
+                    if !favoritePresets.isEmpty {
+                        favoritesSection
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .materialCardStyle()
 
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Recent Activity")
-                            .font(.headline)
-                            .foregroundStyle(.secondary)
-                        Text("Stay on track with your latest timers.")
-                            .foregroundStyle(.secondary)
-                        Button(action: {}) {
-                            Label("Start a quick timer", systemImage: "play.fill")
-                                .font(.headline)
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .tint(Theme.accent)
+                    if store.runningTimers.isEmpty {
+                        emptyState
+                    } else {
+                        timersGrid
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .materialCardStyle(cornerRadius: Theme.cornerRadiusMedium)
                 }
                 .padding()
             }
             .navigationTitle("PrepTick")
             .background(Color(.systemGroupedBackground))
         }
+        .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { date in
+            now = date
+        }
+    }
+
+    private var favoritesSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Favorites")
+                .font(.headline)
+                .foregroundStyle(.secondary)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(favoritePresets) { preset in
+                        Button {
+                            store.startPreset(preset)
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: preset.category.icon)
+                                Text(preset.name)
+                                Text(preset.formattedDuration)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .padding(.vertical, 10)
+                            .padding(.horizontal, 14)
+                            .background(Theme.accent.opacity(0.15))
+                            .foregroundStyle(Theme.accent)
+                            .clipShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+    }
+
+    private var timersGrid: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Running Timers")
+                .font(.headline)
+                .foregroundStyle(.secondary)
+
+            LazyVGrid(columns: gridColumns, alignment: .leading, spacing: 12) {
+                ForEach(store.runningTimers) { timer in
+                    TimerTileView(timer: timer, now: now)
+                }
+            }
+        }
+    }
+
+    private var emptyState: some View {
+        VStack(alignment: .center, spacing: 12) {
+            Image(systemName: "sparkles")
+                .font(.largeTitle)
+                .foregroundStyle(.secondary)
+            Text("No timers running")
+                .font(.headline)
+            Text("Start a favorite to get cooking.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity)
     }
 }
 
 #Preview {
     HomeView()
+        .environmentObject(AppStore())
 }
