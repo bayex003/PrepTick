@@ -25,22 +25,29 @@ final class NotificationManager: ObservableObject {
         }
     }
 
-    func scheduleNotification(for timer: RunningTimer, now: Date = .now) {
+    func scheduleNotification(for timer: RunningTimer, alertsEnabled: Bool, silentModeEnabled: Bool, now: Date = .now) {
         Task {
             await refreshAuthorizationStatus()
 
             guard authorizationStatus == .authorized || authorizationStatus == .provisional else { return }
+            guard alertsEnabled else {
+                cancelNotification(for: timer.id)
+                return
+            }
 
             let remaining = timer.remainingSeconds(at: now)
             guard remaining > 0 else { return }
 
             let content = UNMutableNotificationContent()
-            content.title = timer.preset.name
-            content.body = "Timer finished"
-            content.sound = .default
+            content.title = "PrepTick"
+            content.body = "\(timer.preset.name) done."
+
+            if !silentModeEnabled {
+                content.sound = .default
+            }
 
             let trigger = UNTimeIntervalNotificationTrigger(timeInterval: TimeInterval(remaining), repeats: false)
-            let request = UNNotificationRequest(identifier: timer.id.uuidString, content: content, trigger: trigger)
+            let request = UNNotificationRequest(identifier: notificationIdentifier(for: timer.id), content: content, trigger: trigger)
 
             cancelNotification(for: timer.id)
 
@@ -53,16 +60,31 @@ final class NotificationManager: ObservableObject {
     }
 
     func cancelNotification(for timerID: UUID) {
-        let identifiers = [timerID.uuidString]
+        let identifiers = [notificationIdentifier(for: timerID)]
         center.removePendingNotificationRequests(withIdentifiers: identifiers)
         center.removeDeliveredNotifications(withIdentifiers: identifiers)
     }
 
     func cancelNotifications(for timerIDs: [UUID]) {
-        let identifiers = timerIDs.map { $0.uuidString }
+        let identifiers = timerIDs.map { notificationIdentifier(for: $0) }
         center.removePendingNotificationRequests(withIdentifiers: identifiers)
         center.removeDeliveredNotifications(withIdentifiers: identifiers)
     }
+
+    private func notificationIdentifier(for timerID: UUID) -> String {
+        "timer_\(timerID.uuidString)"
+    }
+
+    // Debug helper for manual notification testing:
+    // func scheduleTestNotification() {
+    //     // Run on device/simulator: call this, then lock the screen.
+    //     // A notification should appear in ~5 seconds if alerts are permitted.
+    //     let content = UNMutableNotificationContent()
+    //     content.title = "PrepTick"
+    //     content.body = "Test notification"
+    //     let request = UNNotificationRequest(identifier: "debug_preptick", content: content, trigger: UNTimeIntervalNotificationTrigger(timeInterval: 5, repeats: false))
+    //     Task { try? await center.add(request) }
+    // }
 
     private func refreshAuthorizationStatus() async {
         let settings = await center.notificationSettings()

@@ -18,8 +18,8 @@ struct SettingsView: View {
                 }
 
                 Section(header: Text("Notifications")) {
-                    Toggle(isOn: Binding(get: { store.settings.notificationsEnabled }, set: { enabled in
-                        store.updateNotificationsEnabled(enabled)
+                    Toggle(isOn: Binding(get: { store.settings.alertsEnabled }, set: { enabled in
+                        store.updateAlertsEnabled(enabled)
 
                         if enabled {
                             notificationManager.requestAuthorization()
@@ -27,6 +27,13 @@ struct SettingsView: View {
                     })) {
                         Label("Timer alerts", systemImage: "bell.fill")
                     }
+
+                    Toggle(isOn: Binding(get: { store.settings.silentModeEnabled }, set: { enabled in
+                        store.updateSilentModeEnabled(enabled)
+                    })) {
+                        Label("Silent mode", systemImage: "bell.slash.fill")
+                    }
+                    .disabled(!store.settings.alertsEnabled)
                 }
             }
             .scrollContentBackground(.hidden)

@@ -33,9 +33,7 @@ final class TimerEngine: ObservableObject {
             switch store.runningTimers[index].state {
             case .running:
                 if remaining <= 0 {
-                    store.runningTimers[index].state = .done
-                    store.runningTimers[index].pausedRemainingSeconds = nil
-                    store.runningTimers[index].endAt = store.runningTimers[index].endAt ?? date
+                    store.markTimerDone(at: index, date: date)
                     didUpdate = true
                 }
             case .paused:
