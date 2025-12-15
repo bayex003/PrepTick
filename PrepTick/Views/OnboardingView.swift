@@ -11,7 +11,7 @@ struct OnboardingView: View {
     @EnvironmentObject private var notificationManager: NotificationManager
     @EnvironmentObject private var store: AppStore
 
-    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding: Bool = false
+    @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding: Bool = false
 
     @State private var currentIndex: Int = 0
 
@@ -93,7 +93,7 @@ struct OnboardingView: View {
             Button {
                 completeOnboarding(requestPermission: false)
             } label: {
-                Text("Maybe later")
+                Text("Maybe Later")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
@@ -102,13 +102,13 @@ struct OnboardingView: View {
     }
 
     private func completeOnboarding(requestPermission: Bool) {
-        store.updateNotificationsEnabled(requestPermission)
+        store.updateAlertsEnabled(requestPermission)
 
         if requestPermission {
             notificationManager.requestAuthorization()
         }
 
-        hasCompletedOnboarding = true
+        hasSeenOnboarding = true
         onFinish()
     }
 }

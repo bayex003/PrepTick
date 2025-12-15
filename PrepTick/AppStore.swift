@@ -183,6 +183,14 @@ class AppStore: ObservableObject {
         updateNotification(for: runningTimers[index], now: now)
     }
 
+    func markTimerDone(at index: Int, date: Date) {
+        guard runningTimers.indices.contains(index) else { return }
+        runningTimers[index].state = .done
+        runningTimers[index].pausedRemainingSeconds = nil
+        runningTimers[index].endAt = runningTimers[index].endAt ?? date
+        notificationManager.cancelNotification(for: runningTimers[index].id)
+    }
+
     func renameTimer(_ timer: RunningTimer, to newName: String) {
         guard let index = runningTimers.firstIndex(where: { $0.id == timer.id }) else { return }
         runningTimers[index].preset.name = newName
@@ -190,8 +198,8 @@ class AppStore: ObservableObject {
         updateNotification(for: runningTimers[index])
     }
 
-    func updateNotificationsEnabled(_ enabled: Bool) {
-        settings.notificationsEnabled = enabled
+    func updateAlertsEnabled(_ enabled: Bool) {
+        settings.alertsEnabled = enabled
         save()
 
         if enabled {
@@ -201,9 +209,15 @@ class AppStore: ObservableObject {
         }
     }
 
+    func updateSilentModeEnabled(_ enabled: Bool) {
+        settings.silentModeEnabled = enabled
+        save()
+        refreshNotifications()
+    }
+
     private func scheduleNotificationIfNeeded(for timer: RunningTimer, now: Date = .now) {
-        guard settings.notificationsEnabled, !timer.isPaused, timer.state != .done else { return }
-        notificationManager.scheduleNotification(for: timer, now: now)
+        guard settings.alertsEnabled, timer.state == .running, timer.endAt != nil else { return }
+        notificationManager.scheduleNotification(for: timer, alertsEnabled: settings.alertsEnabled, silentModeEnabled: settings.silentModeEnabled, now: now)
     }
 
     private func updateNotification(for timer: RunningTimer, now: Date = .now) {

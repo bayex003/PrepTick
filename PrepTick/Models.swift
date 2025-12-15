@@ -166,12 +166,37 @@ struct RunningTimer: Identifiable, Codable, Equatable {
 }
 
 struct Settings: Codable, Equatable {
-    var notificationsEnabled: Bool
+    var alertsEnabled: Bool
+    var silentModeEnabled: Bool
     var accentColorHex: String
 
-    init(notificationsEnabled: Bool = true, accentColorHex: String = "#88A096") {
-        self.notificationsEnabled = notificationsEnabled
+    init(alertsEnabled: Bool = true, silentModeEnabled: Bool = false, accentColorHex: String = "#88A096") {
+        self.alertsEnabled = alertsEnabled
+        self.silentModeEnabled = silentModeEnabled
         self.accentColorHex = accentColorHex
+    }
+
+    enum CodingKeys: CodingKey {
+        case alertsEnabled
+        case silentModeEnabled
+        case accentColorHex
+        case notificationsEnabled
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        alertsEnabled = try container.decodeIfPresent(Bool.self, forKey: .alertsEnabled)
+            ?? container.decodeIfPresent(Bool.self, forKey: .notificationsEnabled)
+            ?? true
+        silentModeEnabled = try container.decodeIfPresent(Bool.self, forKey: .silentModeEnabled) ?? false
+        accentColorHex = try container.decodeIfPresent(String.self, forKey: .accentColorHex) ?? "#88A096"
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(alertsEnabled, forKey: .alertsEnabled)
+        try container.encode(silentModeEnabled, forKey: .silentModeEnabled)
+        try container.encode(accentColorHex, forKey: .accentColorHex)
     }
 
     var accentColor: Color { Color(hex: accentColorHex) }

@@ -6,7 +6,8 @@ struct PrepTickApp: App {
     @StateObject private var store: AppStore
     @StateObject private var timerEngine: TimerEngine
 
-    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding: Bool = false
+    @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding: Bool = false
+    @AppStorage("hasCompletedOnboarding") private var legacyHasCompletedOnboarding: Bool = false
 
     init() {
         let notificationManager = NotificationManager()
@@ -19,16 +20,22 @@ struct PrepTickApp: App {
     var body: some Scene {
         WindowGroup {
             Group {
-                if hasCompletedOnboarding {
+                if hasSeenOnboarding {
                     RootTabView()
                 } else {
-                    OnboardingView(onFinish: { hasCompletedOnboarding = true })
+                    OnboardingView(onFinish: {
+                        hasSeenOnboarding = true
+                        legacyHasCompletedOnboarding = true
+                    })
                 }
             }
             .environmentObject(notificationManager)
             .environmentObject(store)
             .environmentObject(timerEngine)
             .onAppear {
+                if legacyHasCompletedOnboarding && !hasSeenOnboarding {
+                    hasSeenOnboarding = true
+                }
                 timerEngine.bind(to: store)
             }
             .tint(Theme.accent)
