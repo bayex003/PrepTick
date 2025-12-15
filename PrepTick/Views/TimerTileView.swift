@@ -27,7 +27,12 @@ struct TimerTileView: View {
     var body: some View {
         content
             .frame(maxWidth: .infinity, alignment: .leading)
-            .materialCardStyle(cornerRadius: Theme.cornerRadiusMedium)
+            .padding()
+            .background(tileBackground)
+            .overlay(tileBorder)
+            .subtleShadow()
+            .animation(.easeInOut(duration: 0.2), value: isDone)
+            .animation(.easeInOut(duration: 0.2), value: isPaused)
     }
 
     private var content: some View {
@@ -77,6 +82,7 @@ struct TimerTileView: View {
             VStack(alignment: .leading, spacing: 6) {
                 ProgressView(value: progress)
                     .progressViewStyle(.linear)
+                    .tint(Theme.accent)
                 Text("Started \(timer.startedAt, style: .time)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -85,26 +91,35 @@ struct TimerTileView: View {
     }
 
     private var doneState: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Done")
-                .font(.title2.weight(.semibold))
-                .foregroundStyle(.primary)
-            Text("Finished at \(timer.endAt, style: .time)")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: "checkmark.seal.fill")
+                    .foregroundStyle(Theme.accent)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Finished")
+                        .font(.title3.weight(.semibold))
+                    Text("Wrapped at \(timer.endAt, style: .time)")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+            }
 
             HStack(spacing: 10) {
                 Button("Restart") {
                     store.restartTimer(timer)
                 }
                 .buttonStyle(.borderedProminent)
+                .tint(Theme.accent)
+                .controlSize(.large)
+                .font(.headline)
 
                 Button("Clear") {
                     store.clearTimer(timer)
                 }
                 .buttonStyle(.bordered)
+                .controlSize(.large)
+                .font(.subheadline.weight(.semibold))
             }
-            .font(.subheadline)
         }
     }
 
@@ -114,6 +129,22 @@ struct TimerTileView: View {
         formatter.allowedUnits = seconds >= 3600 ? [.hour, .minute, .second] : [.minute, .second]
         return formatter.string(from: TimeInterval(seconds)) ?? "--:--"
     }
+
+    private var tileBackground: some View {
+        RoundedRectangle(cornerRadius: Theme.cornerRadiusMedium, style: .continuous)
+            .fill(.ultraThinMaterial)
+            .overlay(
+                RoundedRectangle(cornerRadius: Theme.cornerRadiusMedium, style: .continuous)
+                    .fill(tileTint.opacity(isDone ? 0.2 : (isPaused ? 0.12 : 0.1)))
+            )
+    }
+
+    private var tileBorder: some View {
+        RoundedRectangle(cornerRadius: Theme.cornerRadiusMedium, style: .continuous)
+            .stroke(tileTint.opacity(isDone ? 0.6 : (isPaused ? 0.4 : 0.32)), lineWidth: isDone ? 1.6 : 1)
+    }
+
+    private var tileTint: Color { Theme.accent }
 }
 
 #Preview {

@@ -51,9 +51,29 @@ class AppStore: ObservableObject {
         let runningTimer = RunningTimer(preset: preset, startedAt: now, endAt: endAt)
 
         runningTimers.append(runningTimer)
-        lastSet.append(LastSet(presetID: preset.id, setAt: now))
+        lastSet = runningTimers.map { LastSet(presetID: $0.preset.id, setAt: now) }
         save()
         scheduleNotificationIfNeeded(for: runningTimer, now: now)
+    }
+
+    func repeatLastSet(now: Date = .now) {
+        let presetMap = Dictionary(uniqueKeysWithValues: presets.map { ($0.id, $0) })
+        let presetsToStart = lastSet.compactMap { presetMap[$0.presetID] }
+
+        guard !presetsToStart.isEmpty else { return }
+
+        notificationManager.cancelNotifications(for: runningTimers.map { $0.id })
+        runningTimers.removeAll()
+
+        for preset in presetsToStart {
+            let endAt = now.addingTimeInterval(TimeInterval(preset.durationSeconds))
+            let runningTimer = RunningTimer(preset: preset, startedAt: now, endAt: endAt)
+            runningTimers.append(runningTimer)
+            scheduleNotificationIfNeeded(for: runningTimer, now: now)
+        }
+
+        lastSet = presetsToStart.map { LastSet(presetID: $0.id, setAt: now) }
+        save()
     }
 
     func toggleFavorite(for preset: Preset) {

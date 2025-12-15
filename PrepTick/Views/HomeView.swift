@@ -15,10 +15,23 @@ struct HomeView: View {
         store.presets.filter { $0.isFavorite }
     }
 
+    private var lastSetPresets: [Preset] {
+        let presetMap = Dictionary(uniqueKeysWithValues: store.presets.map { ($0.id, $0) })
+        return store.lastSet.compactMap { presetMap[$0.presetID] }
+    }
+
+    private var lastSetDate: Date? {
+        store.lastSet.map(\.setAt).max()
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
+                    if !lastSetPresets.isEmpty {
+                        repeatLastSetCard
+                    }
+
                     if !favoritePresets.isEmpty {
                         favoritesSection
                     }
@@ -44,6 +57,16 @@ struct HomeView: View {
                 }
             }
         }
+    }
+
+    private var repeatLastSetCard: some View {
+        RepeatLastSetCardView(
+            presets: lastSetPresets,
+            lastPlayedAt: lastSetDate,
+            onRepeat: {
+                store.repeatLastSet()
+            }
+        )
     }
 
     private var favoritesSection: some View {
