@@ -205,11 +205,40 @@ struct Settings: Codable, Equatable {
 struct LastSet: Identifiable, Codable, Equatable {
     let id: UUID
     var presetID: UUID
+    var name: String
+    var durationSeconds: Int
+    var category: Category?
     var setAt: Date
 
-    init(id: UUID = UUID(), presetID: UUID, setAt: Date = .now) {
+    init(id: UUID = UUID(), presetID: UUID, name: String, durationSeconds: Int, category: Category? = nil, setAt: Date = .now) {
         self.id = id
         self.presetID = presetID
+        self.name = name
+        self.durationSeconds = durationSeconds
+        self.category = category
         self.setAt = setAt
+    }
+
+    init(id: UUID = UUID(), preset: Preset, setAt: Date = .now) {
+        self.id = id
+        self.presetID = preset.id
+        self.name = preset.name
+        self.durationSeconds = preset.durationSeconds
+        self.category = preset.category
+        self.setAt = setAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        presetID = try container.decodeIfPresent(UUID.self, forKey: .presetID) ?? UUID()
+        name = try container.decodeIfPresent(String.self, forKey: .name) ?? "Preset"
+        durationSeconds = try container.decodeIfPresent(Int.self, forKey: .durationSeconds) ?? 0
+        category = try container.decodeIfPresent(Category.self, forKey: .category)
+        setAt = try container.decodeIfPresent(Date.self, forKey: .setAt) ?? .now
+    }
+
+    var snapshotPreset: Preset {
+        Preset(id: presetID, name: name, durationSeconds: durationSeconds, category: category ?? .prep)
     }
 }
