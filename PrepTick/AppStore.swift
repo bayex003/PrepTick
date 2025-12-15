@@ -71,4 +71,17 @@ class AppStore: ObservableObject {
         presets.removeAll { $0.id == preset.id }
         save()
     }
+
+    func clearTimer(_ timer: RunningTimer) {
+        runningTimers.removeAll { $0.id == timer.id }
+        save()
+    }
+
+    func restartTimer(_ timer: RunningTimer) {
+        guard let index = runningTimers.firstIndex(where: { $0.id == timer.id }) else { return }
+        let now = Date()
+        runningTimers[index].startedAt = now
+        runningTimers[index].endAt = now.addingTimeInterval(TimeInterval(timer.preset.durationSeconds))
+        save()
+    }
 }

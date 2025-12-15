@@ -2,7 +2,7 @@ import SwiftUI
 
 struct HomeView: View {
     @EnvironmentObject private var store: AppStore
-    @State private var now: Date = .now
+    @EnvironmentObject private var timerEngine: TimerEngine
 
     private let gridColumns = [
         GridItem(.flexible(), spacing: 12),
@@ -31,9 +31,6 @@ struct HomeView: View {
             }
             .navigationTitle("PrepTick")
             .background(Color(.systemGroupedBackground))
-        }
-        .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { date in
-            now = date
         }
     }
 
@@ -76,7 +73,7 @@ struct HomeView: View {
 
             LazyVGrid(columns: gridColumns, alignment: .leading, spacing: 12) {
                 ForEach(store.runningTimers) { timer in
-                    TimerTileView(timer: timer, now: now)
+                    TimerTileView(timer: timer, now: timerEngine.now)
                 }
             }
         }
@@ -100,4 +97,5 @@ struct HomeView: View {
 #Preview {
     HomeView()
         .environmentObject(AppStore())
+        .environmentObject(TimerEngine())
 }

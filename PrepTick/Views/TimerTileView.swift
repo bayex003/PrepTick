@@ -1,11 +1,16 @@
 import SwiftUI
 
 struct TimerTileView: View {
+    @EnvironmentObject private var store: AppStore
     let timer: RunningTimer
     let now: Date
 
     private var remaining: Int {
         max(0, Int(timer.endAt.timeIntervalSince(now)))
+    }
+
+    private var isDone: Bool {
+        remaining == 0
     }
 
     private var progress: Double {
@@ -30,22 +35,54 @@ struct TimerTileView: View {
                 Spacer()
             }
 
-            HStack(alignment: .bottom, spacing: 12) {
-                Text(formattedTime(remaining))
-                    .font(.system(size: 38, weight: .semibold, design: .monospaced))
-                    .foregroundStyle(.primary)
-
-                VStack(alignment: .leading, spacing: 6) {
-                    ProgressView(value: progress)
-                        .progressViewStyle(.linear)
-                    Text("Started \(timer.startedAt, style: .time)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+            if isDone {
+                doneState
+            } else {
+                runningState
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .materialCardStyle(cornerRadius: Theme.cornerRadiusMedium)
+    }
+
+    private var runningState: some View {
+        HStack(alignment: .bottom, spacing: 12) {
+            Text(formattedTime(remaining))
+                .font(.system(size: 38, weight: .semibold, design: .monospaced))
+                .foregroundStyle(.primary)
+
+            VStack(alignment: .leading, spacing: 6) {
+                ProgressView(value: progress)
+                    .progressViewStyle(.linear)
+                Text("Started \(timer.startedAt, style: .time)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private var doneState: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Done")
+                .font(.title2.weight(.semibold))
+                .foregroundStyle(.primary)
+            Text("Finished at \(timer.endAt, style: .time)")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
+            HStack(spacing: 10) {
+                Button("Restart") {
+                    store.restartTimer(timer)
+                }
+                .buttonStyle(.borderedProminent)
+
+                Button("Clear") {
+                    store.clearTimer(timer)
+                }
+                .buttonStyle(.bordered)
+            }
+            .font(.subheadline)
+        }
     }
 
     private func formattedTime(_ seconds: Int) -> String {
@@ -66,4 +103,6 @@ struct TimerTileView: View {
     )
     .padding()
     .background(Color(.systemGroupedBackground))
+    .environmentObject(AppStore())
+    .environmentObject(TimerEngine())
 }
